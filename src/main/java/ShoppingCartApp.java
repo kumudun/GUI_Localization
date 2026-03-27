@@ -11,10 +11,13 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
 public class ShoppingCartApp extends Application {
@@ -25,12 +28,12 @@ public class ShoppingCartApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         primaryStage = stage;
-        loadScene(new Locale("en", "US"));
+        loadScene(new Locale("en", "US"), "English");
         primaryStage.show();
     }
 
-    public static void loadScene(Locale locale) throws IOException {
-        ResourceBundle bundle = ResourceBundle.getBundle("MessagesBundle", locale);
+    public static void loadScene(Locale locale, String selectedLanguage) throws IOException {
+        ResourceBundle bundle = ResourceBundle.getBundle("MessagesBundle", locale, new UTF8Control());
 
         FXMLLoader loader = new FXMLLoader(
                 ShoppingCartApp.class.getResource("/main-view.fxml"),
@@ -39,13 +42,37 @@ public class ShoppingCartApp extends Application {
 
         Parent root = loader.load();
 
-        Scene scene = new Scene(root, 850, 650);
+        Controller controller = loader.getController();
+        controller.setSelectedLanguage(selectedLanguage);
+        controller.applyLanguageStyle(root, locale);
+
+        Scene scene = new Scene(root, 900, 650);
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
     }
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    public static class UTF8Control extends ResourceBundle.Control {
+        @Override
+        public ResourceBundle newBundle(String baseName, Locale locale, String format,
+                                        ClassLoader loader, boolean reload)
+                throws IllegalAccessException, InstantiationException, IOException {
+
+            String bundleName = toBundleName(baseName, locale);
+            String resourceName = toResourceName(bundleName, "properties");
+
+            try (var stream = loader.getResourceAsStream(resourceName)) {
+                if (stream == null) {
+                    return null;
+                }
+                try (var reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                    return new PropertyResourceBundle(reader);
+                }
+            }
+        }
     }
 
     public static class Controller {
@@ -66,6 +93,9 @@ public class ShoppingCartApp extends Application {
         private Button enterItemsButton;
 
         @FXML
+        private Label instructionLabel;
+
+        @FXML
         private VBox itemsContainer;
 
         @FXML
@@ -76,9 +106,6 @@ public class ShoppingCartApp extends Application {
 
         @FXML
         private Label totalValueLabel;
-
-        @FXML
-        private Label instructionLabel;
 
         private final List<TextField> priceFields = new ArrayList<>();
         private final List<TextField> quantityFields = new ArrayList<>();
@@ -92,7 +119,28 @@ public class ShoppingCartApp extends Application {
             languageComboBox.setItems(FXCollections.observableArrayList(
                     "English", "Finnish", "Swedish", "Japanese", "Arabic"
             ));
-            languageComboBox.setValue("English");
+        }
+
+        public void setSelectedLanguage(String language) {
+            languageComboBox.setItems(FXCollections.observableArrayList(
+                    "English", "Finnish", "Swedish", "Japanese", "Arabic"
+            ));
+            languageComboBox.setValue(language);
+        }
+
+        public void applyLanguageStyle(Parent root, Locale locale) {
+            String language = locale.getLanguage();
+
+            if ("ja".equals(language)) {
+                root.setStyle("-fx-font-family: 'Yu Gothic UI', 'Meiryo', 'MS Gothic';");
+                root.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+            } else if ("ar".equals(language)) {
+                root.setStyle("-fx-font-family: 'Segoe UI', 'Tahoma', 'Arial Unicode MS';");
+                root.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            } else {
+                root.setStyle("-fx-font-family: 'Segoe UI', 'Arial', 'SansSerif';");
+                root.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
+            }
         }
 
         @FXML
@@ -101,7 +149,7 @@ public class ShoppingCartApp extends Application {
             Locale locale = mapLanguageToLocale(selected);
 
             try {
-                ShoppingCartApp.loadScene(locale);
+                ShoppingCartApp.loadScene(locale, selected);
             } catch (IOException e) {
                 showError("Could not change language.");
             }
@@ -119,7 +167,6 @@ public class ShoppingCartApp extends Application {
 
             try {
                 itemCount = Integer.parseInt(itemCountField.getText().trim());
-
                 if (itemCount <= 0) {
                     showError(getBundleText("error.positive.items"));
                     return;
@@ -136,9 +183,11 @@ public class ShoppingCartApp extends Application {
 
                 TextField priceField = new TextField();
                 priceField.setPromptText(bundle.getString("enter.price.for.item"));
+                priceField.setPrefWidth(180);
 
                 TextField quantityField = new TextField();
                 quantityField.setPromptText(bundle.getString("enter.quantity.for.item"));
+                quantityField.setPrefWidth(180);
 
                 Label itemTotalTextLabel = new Label(bundle.getString("item.total"));
                 Label itemTotalValueLabel = new Label("0.00");
@@ -219,7 +268,7 @@ public class ShoppingCartApp extends Application {
 
         private ResourceBundle currentBundle() {
             Locale locale = mapLanguageToLocale(languageComboBox.getValue());
-            return ResourceBundle.getBundle("MessagesBundle", locale);
+            return ResourceBundle.getBundle("MessagesBundle", locale, new ShoppingCartApp.UTF8Control());
         }
 
         private String getBundleText(String key) {

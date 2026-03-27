@@ -19,7 +19,6 @@ public class CartCalculatorTest {
         int[] quantities = {2, 4, 1};
 
         double result = calculator.calculateCartTotal(prices, quantities);
-
         assertEquals(49.0, result, 0.001);
     }
 
@@ -27,9 +26,7 @@ public class CartCalculatorTest {
     void testEmptyCartTotal() {
         double[] prices = {};
         int[] quantities = {};
-
         double result = calculator.calculateCartTotal(prices, quantities);
-
         assertEquals(0.0, result, 0.001);
     }
 
@@ -48,4 +45,3 @@ public class CartCalculatorTest {
                 () -> calculator.calculateCartTotal(null, null));
     }
 }
-

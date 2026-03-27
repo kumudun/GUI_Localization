@@ -14,11 +14,9 @@ public class CartCalculator {
         }
 
         double total = 0.0;
-
         for (int i = 0; i < prices.length; i++) {
             total += calculateItemTotal(prices[i], quantities[i]);
         }
-
         return total;
     }
 }

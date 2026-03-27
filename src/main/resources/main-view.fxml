@@ -30,7 +30,7 @@
 
     <ScrollPane fitToWidth="true" prefHeight="350">
         <content>
-            <VBox fx:id="itemsContainer" spacing="10" prefWidth="800">
+            <VBox fx:id="itemsContainer" spacing="10" prefWidth="850">
                 <padding>
                     <Insets top="5" right="5" bottom="5" left="5"/>
                 </padding>
